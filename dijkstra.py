@@ -49,8 +49,8 @@ def get_successors(node):
 
 
 # Heuristic function for A* (Manhattan distance)
-def heuristic(node, goal):
-    return abs(node.position[0] - goal[0]) + abs(node.position[1] - goal[1])
+# def heuristic(node, goal):
+#     return abs(node.position[0] - goal[0]) + abs(node.position[1] - goal[1])
 
 #Euclidean distance heuristic
 # def heuristic(node, goal):
@@ -59,7 +59,41 @@ def heuristic(node, goal):
 #     return sqrt(dx*dx + dy*dy)
 
 # A* search algorithm with turn penalty
-def a_star_search(start, goal):
+# def a_star_search(start, goal):
+#     open_set = set()
+#     closed_set = set()
+#     start_node = Node(start)
+#     goal_node = Node(goal)
+    
+#     open_set.add(start_node)
+    
+#     while open_set:
+#         # current_node = min(open_set, key=lambda n: n.g_cost + heuristic(n, goal))
+
+#         current_node = min(open_set, key=lambda n: n.g_cost)
+        
+#         if current_node.position == goal_node.position:
+#             return reconstruct_path(current_node)
+        
+#         open_set.remove(current_node)
+#         closed_set.add(current_node)
+        
+#         for successor in get_successors(current_node):
+#             if successor in closed_set:
+#                 continue
+#             if successor not in open_set:
+#                 open_set.add(successor)
+#             else:
+#                 # Check if we've found a better path
+#                 existing_node = open_set.pop(successor)
+#                 if successor.g_cost < existing_node.g_cost:
+#                     open_set.add(successor)
+#                 else:
+#                     open_set.add(existing_node)
+    
+#     return []  # Return empty path if goal not found
+
+def dijkstra_search(start, goal):
     open_set = set()
     closed_set = set()
     start_node = Node(start)
@@ -68,8 +102,9 @@ def a_star_search(start, goal):
     open_set.add(start_node)
     
     while open_set:
-        current_node = min(open_set, key=lambda n: n.g_cost + heuristic(n, goal))
-        
+        # Select node with minimum g_cost in open set
+        current_node = min(open_set, key=lambda n: n.g_cost)
+
         if current_node.position == goal_node.position:
             return reconstruct_path(current_node)
         
@@ -79,17 +114,17 @@ def a_star_search(start, goal):
         for successor in get_successors(current_node):
             if successor in closed_set:
                 continue
-            if successor not in open_set:
+            # Improved handling for open_set updates
+            in_open_set = False
+            for open_node in open_set:
+                if open_node.position == successor.position:
+                    in_open_set = True
+                    if successor.g_cost < open_node.g_cost:
+                        open_set.remove(open_node)
+                        open_set.add(successor)
+                    break
+            if not in_open_set:
                 open_set.add(successor)
-            else:
-                # Check if we've found a better path
-                existing_node = open_set.pop(successor)
-                if successor.g_cost < existing_node.g_cost:
-                    open_set.add(successor)
-                else:
-                    open_set.add(existing_node)
-    
-    return []  # Return empty path if goal not found
 
 # Reconstruct path from goal to start
 def reconstruct_path(node):
@@ -102,7 +137,8 @@ def reconstruct_path(node):
 # Example usage
 start_position = (0, 0)  # Starting coordinates
 goal_position = (20, 9)  # Goal coordinates
-path = a_star_search(start_position, goal_position)
+# path = a_star_search(start_position, goal_position)
+path = dijkstra_search(start_position,goal_position)
 
 print("Path found:", path)
 
