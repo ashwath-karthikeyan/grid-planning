@@ -41,7 +41,13 @@ def create_graph():
             nodes[(x, y)] = Node((x, y))
     for node in nodes.values():
         x, y = node.position
-        for dx, dy in [(-NODE_DISTANCE, 0), (NODE_DISTANCE, 0), (0, -NODE_DISTANCE), (0, NODE_DISTANCE)]:
+        neighbors_offsets = [
+            (-NODE_DISTANCE, 0), (NODE_DISTANCE, 0),
+            (0, -NODE_DISTANCE), (0, NODE_DISTANCE),
+            (-NODE_DISTANCE, -NODE_DISTANCE), (NODE_DISTANCE, NODE_DISTANCE),
+            (NODE_DISTANCE, -NODE_DISTANCE), (-NODE_DISTANCE, NODE_DISTANCE)  # Diagonal connections
+        ]
+        for dx, dy in neighbors_offsets:
             if (x + dx, y + dy) in nodes:
                 node.add_neighbor(nodes[(x + dx, y + dy)])
     return nodes
@@ -112,6 +118,6 @@ while running:
     win.fill(BLACK)
     draw_nodes_and_edges(nodes, final_path, open_set, closed_set, start_node, goal_node)
     pygame.display.update()
-    clock.tick(10)
+    clock.tick(100)
 
 pygame.quit()
