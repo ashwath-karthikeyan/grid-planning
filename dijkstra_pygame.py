@@ -3,11 +3,13 @@ from math import sqrt
 
 # Constants
 WIDTH, HEIGHT = 600, 300
-GRID_SIZE = 30
+NODE_RADIUS = 15
+NODE_DISTANCE = 60
 WHITE = (255, 255, 255)
 GREEN = (0, 255, 0)
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
+YELLOW = (255, 255, 0)
 BLACK = (0, 0, 0)
 
 # Initialize Pygame
@@ -17,10 +19,11 @@ pygame.display.set_caption("Dijkstra's Pathfinding Animation")
 clock = pygame.time.Clock()
 
 class Node:
-    def __init__(self, position, g_cost=0, parent=None):
+    def __init__(self, position, g_cost=float('inf'), parent=None):
         self.position = position
         self.g_cost = g_cost
         self.parent = parent
+        self.neighbors = []
 
     def __eq__(self, other):
         return self.position == other.position
@@ -28,88 +31,85 @@ class Node:
     def __hash__(self):
         return hash(self.position)
 
-def draw_grid(path):
-    for x in range(0, WIDTH, GRID_SIZE):
-        for y in range(0, HEIGHT, GRID_SIZE):
-            rect = pygame.Rect(x, y, GRID_SIZE, GRID_SIZE)
-            if (x // GRID_SIZE, y // GRID_SIZE) in path:
-                pygame.draw.rect(win, BLUE, rect)
-            pygame.draw.rect(win, WHITE, rect, 1)
+    def add_neighbor(self, neighbor):
+        self.neighbors.append(neighbor)
 
-def draw_start_goal(start, goal):
-    start_rect = pygame.Rect(start[0] * GRID_SIZE, start[1] * GRID_SIZE, GRID_SIZE, GRID_SIZE)
-    goal_rect = pygame.Rect(goal[0] * GRID_SIZE, goal[1] * GRID_SIZE, GRID_SIZE, GRID_SIZE)
-    pygame.draw.rect(win, GREEN, start_rect)
-    pygame.draw.rect(win, RED, goal_rect)
+def create_graph():
+    nodes = {}
+    for x in range(NODE_DISTANCE, WIDTH, NODE_DISTANCE):
+        for y in range(NODE_DISTANCE, HEIGHT, NODE_DISTANCE):
+            nodes[(x, y)] = Node((x, y))
+    for node in nodes.values():
+        x, y = node.position
+        for dx, dy in [(-NODE_DISTANCE, 0), (NODE_DISTANCE, 0), (0, -NODE_DISTANCE), (0, NODE_DISTANCE)]:
+            if (x + dx, y + dy) in nodes:
+                node.add_neighbor(nodes[(x + dx, y + dy)])
+    return nodes
 
-def get_successors(node):
-    directions = [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
-    cost = {d: sqrt(2) if d in directions[4:] else 1 for d in directions}
-    successors = []
-    for d in directions:
-        next_pos = (node.position[0] + d[0], node.position[1] + d[1])
-        if 0 <= next_pos[0] < WIDTH // GRID_SIZE and 0 <= next_pos[1] < HEIGHT // GRID_SIZE:
-            movement_cost = cost[d]
-            successors.append(Node(next_pos, node.g_cost + movement_cost, node))
-    return successors
+def draw_nodes(nodes, final_path, open_set, closed_set, start, goal):
+    for node in nodes.values():
+        color = BLUE if node in closed_set else WHITE if node in open_set else WHITE
+        if node.position in final_path:
+            color = YELLOW
+        if node == start:
+            color = GREEN
+        if node == goal:
+            color = RED
+        pygame.draw.circle(win, color, node.position, NODE_RADIUS)
 
 def dijkstra_search(start, goal):
     open_set = set()
     closed_set = set()
-    start_node = Node(start)
-    goal_node = Node(goal)
-    open_set.add(start_node)
-    
+    start.g_cost = 0
+    open_set.add(start)
+
     while open_set:
         current_node = min(open_set, key=lambda n: n.g_cost)
-        if current_node.position == goal_node.position:
+        if current_node == goal:
             return reconstruct_path(current_node)
         open_set.remove(current_node)
         closed_set.add(current_node)
-        
-        for successor in get_successors(current_node):
-            if successor in closed_set:
+
+        for neighbor in current_node.neighbors:
+            if neighbor in closed_set:
                 continue
-            in_open_set = False
-            for open_node in open_set:
-                if open_node.position == successor.position:
-                    in_open_set = True
-                    if successor.g_cost < open_node.g_cost:
-                        open_set.remove(open_node)
-                        open_set.add(successor)
-                    break
-            if not in_open_set:
-                open_set.add(successor)
-            yield current_node, open_set, closed_set
+            temp_g_cost = current_node.g_cost + sqrt((neighbor.position[0] - current_node.position[0])**2 + (neighbor.position[1] - current_node.position[1])**2)
+            if temp_g_cost < neighbor.g_cost:
+                neighbor.g_cost = temp_g_cost
+                neighbor.parent = current_node
+                open_set.add(neighbor)
+            yield current_node, open_set, closed_set, []
 
 def reconstruct_path(node):
     path = []
     while node:
         path.append(node.position)
         node = node.parent
-    return path
+    return path[::-1]  # Reverse path
 
-start_position = (0, 0)
-goal_position = (19, 9)
-generator = dijkstra_search(start_position, goal_position)
+nodes = create_graph()
+start_position = (NODE_DISTANCE, NODE_DISTANCE)
+goal_position = (WIDTH - NODE_DISTANCE, HEIGHT - NODE_DISTANCE)
+start_node = nodes[start_position]
+goal_node = nodes[goal_position]
+generator = dijkstra_search(start_node, goal_node)
 
 running = True
-path = []
+final_path = []
 
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
 
-    try:
-        current_node, open_set, closed_set = next(generator)
-        path.append(current_node.position)
-    except StopIteration:
-        pass
+    if not final_path:
+        try:
+            current_node, open_set, closed_set, _ = next(generator)
+        except StopIteration as e:
+            final_path = e.value
 
     win.fill(BLACK)
-    draw_grid(path)
-    draw_start_goal(start_position, goal_position)
+    draw_nodes(nodes, final_path, open_set, closed_set, start_node, goal_node)
     pygame.display.update()
     clock.tick(10)
 
