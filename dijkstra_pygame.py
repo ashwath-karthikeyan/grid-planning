@@ -2,9 +2,9 @@ import pygame
 from math import sqrt
 
 # Constants
-WIDTH, HEIGHT = 600, 300
-NODE_RADIUS = 15
-NODE_DISTANCE = 60
+WIDTH, HEIGHT = 1200, 800  # Larger display area
+NODE_RADIUS = 10           # Smaller node radius for more nodes
+NODE_DISTANCE = 40         # Smaller distance to fit more nodes
 WHITE = (255, 255, 255)
 GREEN = (0, 255, 0)
 RED = (255, 0, 0)
@@ -46,7 +46,7 @@ def create_graph():
                 node.add_neighbor(nodes[(x + dx, y + dy)])
     return nodes
 
-def draw_nodes(nodes, final_path, open_set, closed_set, start, goal):
+def draw_nodes_and_edges(nodes, final_path, open_set, closed_set, start, goal):
     for node in nodes.values():
         color = BLUE if node in closed_set else WHITE if node in open_set else WHITE
         if node.position in final_path:
@@ -55,6 +55,7 @@ def draw_nodes(nodes, final_path, open_set, closed_set, start, goal):
             color = GREEN
         if node == goal:
             color = RED
+        # Draw nodes
         pygame.draw.circle(win, color, node.position, NODE_RADIUS)
 
 def dijkstra_search(start, goal):
@@ -109,7 +110,7 @@ while running:
             final_path = e.value
 
     win.fill(BLACK)
-    draw_nodes(nodes, final_path, open_set, closed_set, start_node, goal_node)
+    draw_nodes_and_edges(nodes, final_path, open_set, closed_set, start_node, goal_node)
     pygame.display.update()
     clock.tick(10)
 
