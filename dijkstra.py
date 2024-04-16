@@ -4,7 +4,6 @@ from math import pi, sqrt
 # Define constants
 MAX_ANGULAR_VELOCITY = 45
 VELOCITY = 5
-TURN_COST = MAX_ANGULAR_VELOCITY / 8  # Cost for 45-degree turn
 
 # Node representation
 class Node:
@@ -12,17 +11,6 @@ class Node:
         self.position = position
         self.g_cost = g_cost  # Total cost from start node to this node
         self.parent = parent  # Parent node in path
-
-# Helper function to calculate turn cost
-def calculate_turn_cost(parent, current, next_node):
-    if parent is None:
-        return 0
-    direction_to_current = tuple(c - p for c, p in zip(current.position, parent.position))
-    direction_to_next = tuple(n - c for n, c in zip(next_node, current.position))
-    if direction_to_current == direction_to_next:
-        return 0  # No turn cost if straight
-    else:
-        return TURN_COST  # Turn cost for 45-degree turn
 
 # Generate successors for 8-connected grid
 def get_successors(node):
@@ -35,7 +23,6 @@ def get_successors(node):
     successors = []
     for d in cardinal_directions + intercardinal_directions:
         next_position = (node.position[0] + d[0], node.position[1] + d[1])
-        turn_cost = calculate_turn_cost(node.parent, node, next_position)
         
         # Determine if the movement is cardinal or intercardinal and assign the correct cost
         if d in cardinal_directions:
@@ -43,55 +30,9 @@ def get_successors(node):
         else:
             movement_cost = intercardinal_cost
         
-        next_node = Node(next_position, node.g_cost + movement_cost + turn_cost, node)
+        next_node = Node(next_position, node.g_cost + movement_cost, node)
         successors.append(next_node)
     return successors
-
-
-# Heuristic function for A* (Manhattan distance)
-# def heuristic(node, goal):
-#     return abs(node.position[0] - goal[0]) + abs(node.position[1] - goal[1])
-
-#Euclidean distance heuristic
-# def heuristic(node, goal):
-#     dx = abs(node.position[0] - goal[0])
-#     dy = abs(node.position[1] - goal[1])
-#     return sqrt(dx*dx + dy*dy)
-
-# A* search algorithm with turn penalty
-# def a_star_search(start, goal):
-#     open_set = set()
-#     closed_set = set()
-#     start_node = Node(start)
-#     goal_node = Node(goal)
-    
-#     open_set.add(start_node)
-    
-#     while open_set:
-#         # current_node = min(open_set, key=lambda n: n.g_cost + heuristic(n, goal))
-
-#         current_node = min(open_set, key=lambda n: n.g_cost)
-        
-#         if current_node.position == goal_node.position:
-#             return reconstruct_path(current_node)
-        
-#         open_set.remove(current_node)
-#         closed_set.add(current_node)
-        
-#         for successor in get_successors(current_node):
-#             if successor in closed_set:
-#                 continue
-#             if successor not in open_set:
-#                 open_set.add(successor)
-#             else:
-#                 # Check if we've found a better path
-#                 existing_node = open_set.pop(successor)
-#                 if successor.g_cost < existing_node.g_cost:
-#                     open_set.add(successor)
-#                 else:
-#                     open_set.add(existing_node)
-    
-#     return []  # Return empty path if goal not found
 
 def dijkstra_search(start, goal):
     open_set = set()

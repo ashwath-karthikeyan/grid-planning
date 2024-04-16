@@ -49,14 +49,14 @@ def get_successors(node):
 
 
 # Heuristic function for A* (Manhattan distance)
-def heuristic(node, goal):
-    return abs(node.position[0] - goal[0]) + abs(node.position[1] - goal[1])
+# def heuristic(node, goal):
+#     return abs(node.position[0] - goal[0]) + abs(node.position[1] - goal[1])
 
 #Euclidean distance heuristic
-# def heuristic(node, goal):
-#     dx = abs(node.position[0] - goal[0])
-#     dy = abs(node.position[1] - goal[1])
-#     return sqrt(dx*dx + dy*dy)
+def heuristic(node, goal):
+    dx = abs(node.position[0] - goal[0])
+    dy = abs(node.position[1] - goal[1])
+    return sqrt(dx*dx + dy*dy)
 
 # A* search algorithm with turn penalty
 def a_star_search(start, goal):
