@@ -90,6 +90,34 @@ def dijkstra_search(start, goal):
                 open_set.add(neighbor)
             yield current_node, open_set, closed_set, []
 
+def a_star_search(start, goal):
+    open_set = set()
+    closed_set = set()
+    start.g_cost = 0
+    start.f_cost = start.g_cost + heuristic(start, goal)
+    open_set.add(start)
+
+    while open_set:
+        current_node = min(open_set, key=lambda n: n.f_cost)
+        if current_node == goal:
+            return reconstruct_path(current_node)
+        open_set.remove(current_node)
+        closed_set.add(current_node)
+
+        for neighbor in current_node.neighbors:
+            if neighbor in closed_set:
+                continue
+            temp_g_cost = current_node.g_cost + sqrt((neighbor.position[0] - current_node.position[0]) ** 2 + (neighbor.position[1] - current_node.position[1]) ** 2)
+            if neighbor not in open_set or temp_g_cost < neighbor.g_cost:
+                neighbor.g_cost = temp_g_cost
+                neighbor.f_cost = neighbor.g_cost + heuristic(neighbor, goal)
+                neighbor.parent = current_node
+                open_set.add(neighbor)
+            yield current_node, open_set, closed_set, []
+
+def heuristic(node, goal):
+    return sqrt((node.position[0] - goal.position[0]) ** 2 + (node.position[1] - goal.position[1]) ** 2)
+
 def reconstruct_path(node):
     path = []
     while node:
@@ -102,7 +130,8 @@ start_position = (NODE_DISTANCE, NODE_DISTANCE)
 goal_position = (WIDTH - NODE_DISTANCE, HEIGHT - NODE_DISTANCE)
 start_node = nodes[start_position]
 goal_node = nodes[goal_position]
-generator = dijkstra_search(start_node, goal_node)
+# generator = dijkstra_search(start_node, goal_node)
+generator = a_star_search(start_node,goal_node)
 
 running = True
 final_path = []
