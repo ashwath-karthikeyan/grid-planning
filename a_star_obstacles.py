@@ -2,29 +2,35 @@ import pygame
 from math import sqrt, atan2, pi
 
 # Constants
-WIDTH, HEIGHT = 1200, 800  # Larger display area
-NODE_RADIUS = 10           # Smaller node radius for more nodes
-NODE_DISTANCE = 40         # Smaller distance to fit more nodes
+WIDTH, HEIGHT = 1200, 800
+NODE_RADIUS = 10
+NODE_DISTANCE = 40
 WHITE = (255, 255, 255)
 GREEN = (0, 255, 0)
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 YELLOW = (255, 255, 0)
 BLACK = (0, 0, 0)
+OBSTACLE_COLOR = (128, 128, 128)
 
-# Initialize Pygame
+# Obstacle definitions (top-left corner x, top-left corner y, width, height)
+obstacles = [
+    (400, 200, 200, 200),  # Example obstacle
+    (800, 600, 200, 100)   # Another obstacle
+]
+
 pygame.init()
 win = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Dijkstra's Pathfinding Animation")
+pygame.display.set_caption("Dijkstra's Pathfinding Animation with Obstacles")
 clock = pygame.time.Clock()
 
 class Node:
-    def __init__(self, position, g_cost=float('inf'), parent=None, direction=None):
+    def __init__(self, position):
         self.position = position
-        self.g_cost = g_cost
-        self.parent = parent
+        self.g_cost = float('inf')
+        self.parent = None
         self.neighbors = []
-        self.direction = direction  # Direction from which this node was reached
+        self.direction = None
 
     def add_neighbor(self, neighbor):
         self.neighbors.append(neighbor)
@@ -35,42 +41,25 @@ class Node:
     def __hash__(self):
         return hash(self.position)
 
+def is_within_obstacle(x, y):
+    for ox, oy, ow, oh in obstacles:
+        if ox <= x <= ox + ow and oy <= y <= oy + oh:
+            return True
+    return False
+
 def create_graph():
     nodes = {}
     for x in range(NODE_DISTANCE, WIDTH, NODE_DISTANCE):
         for y in range(NODE_DISTANCE, HEIGHT, NODE_DISTANCE):
-            nodes[(x, y)] = Node((x, y))
+            if not is_within_obstacle(x, y):
+                nodes[(x, y)] = Node((x, y))
     for node in nodes.values():
         x, y = node.position
-
-        four_connected = [(-NODE_DISTANCE, 0), (NODE_DISTANCE, 0), (0, -NODE_DISTANCE), (0, NODE_DISTANCE)]
-
-        eight_connected = [
-            (-NODE_DISTANCE, 0), (NODE_DISTANCE, 0),
-            (0, -NODE_DISTANCE), (0, NODE_DISTANCE),
-            (-NODE_DISTANCE, -NODE_DISTANCE), (NODE_DISTANCE, NODE_DISTANCE),
-            (NODE_DISTANCE, -NODE_DISTANCE), (-NODE_DISTANCE, NODE_DISTANCE)  # Diagonal connections
-        ]
-        for dx, dy in eight_connected:
-            if (x + dx, y + dy) in nodes:
-                node.add_neighbor(nodes[(x + dx, y + dy)])
+        for dx, dy in [(-NODE_DISTANCE, 0), (NODE_DISTANCE, 0), (0, -NODE_DISTANCE), (0, NODE_DISTANCE)]:
+            neighbor_position = (x + dx, y + dy)
+            if neighbor_position in nodes:
+                node.add_neighbor(nodes[neighbor_position])
     return nodes
-
-def draw_nodes_and_edges(nodes, final_path, open_set, closed_set, start, goal):
-    for node in nodes.values():
-        color = BLUE if node in closed_set else WHITE if node in open_set else WHITE
-        if node.position in final_path:
-            color = YELLOW
-        if node == start:
-            color = GREEN
-        if node == goal:
-            color = RED
-        # Draw nodes
-        pygame.draw.circle(win, color, node.position, NODE_RADIUS)
-
-def calculate_direction(from_node, to_node):
-    # Returns the angle in radians between the from_node and to_node, relative to the x-axis.
-    return atan2(to_node.position[1] - from_node.position[1], to_node.position[0] - from_node.position[0])
 
 def a_star_search(start, goal):
     open_set = set()
@@ -121,12 +110,30 @@ def reconstruct_path(node):
         node = node.parent
     return path[::-1]  # Reverse path
 
+def calculate_direction(from_node, to_node):
+    # Returns the angle in radians between the from_node and to_node, relative to the x-axis.
+    return atan2(to_node.position[1] - from_node.position[1], to_node.position[0] - from_node.position[0])
+
+def draw_nodes_and_edges(nodes, final_path, open_set, closed_set, start, goal):
+    win.fill(BLACK)
+    for ox, oy, ow, oh in obstacles:
+        pygame.draw.rect(win, OBSTACLE_COLOR, (ox, oy, ow, oh))
+    for node in nodes.values():
+        color = YELLOW if node.position in final_path else BLUE if node in closed_set else WHITE if node in open_set else WHITE
+        if node == start:
+            color = GREEN
+        if node == goal:
+            color = RED
+        pygame.draw.circle(win, color, node.position, NODE_RADIUS)
+
+# Rest of your functions and main loop remain unchanged
+
 nodes = create_graph()
 start_position = (NODE_DISTANCE, NODE_DISTANCE)
 goal_position = (WIDTH - NODE_DISTANCE, HEIGHT - NODE_DISTANCE)
 start_node = nodes[start_position]
 goal_node = nodes[goal_position]
-generator = a_star_search(start_node,goal_node)
+generator = a_star_search(start_node, goal_node)
 
 running = True
 final_path = []
@@ -142,7 +149,6 @@ while running:
         except StopIteration as e:
             final_path = e.value
 
-    win.fill(BLACK)
     draw_nodes_and_edges(nodes, final_path, open_set, closed_set, start_node, goal_node)
     pygame.display.update()
     clock.tick(100)
