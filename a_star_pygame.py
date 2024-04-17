@@ -1,5 +1,5 @@
 import pygame
-from math import sqrt
+from math import sqrt, atan2, pi
 
 # Constants
 WIDTH, HEIGHT = 1200, 800  # Larger display area
@@ -19,20 +19,21 @@ pygame.display.set_caption("Dijkstra's Pathfinding Animation")
 clock = pygame.time.Clock()
 
 class Node:
-    def __init__(self, position, g_cost=float('inf'), parent=None):
+    def __init__(self, position, g_cost=float('inf'), parent=None, direction=None):
         self.position = position
         self.g_cost = g_cost
         self.parent = parent
         self.neighbors = []
+        self.direction = direction  # Direction from which this node was reached
+
+    def add_neighbor(self, neighbor):
+        self.neighbors.append(neighbor)
 
     def __eq__(self, other):
         return self.position == other.position
 
     def __hash__(self):
         return hash(self.position)
-
-    def add_neighbor(self, neighbor):
-        self.neighbors.append(neighbor)
 
 def create_graph():
     nodes = {}
@@ -67,34 +68,16 @@ def draw_nodes_and_edges(nodes, final_path, open_set, closed_set, start, goal):
         # Draw nodes
         pygame.draw.circle(win, color, node.position, NODE_RADIUS)
 
-def dijkstra_search(start, goal):
-    open_set = set()
-    closed_set = set()
-    start.g_cost = 0
-    open_set.add(start)
-
-    while open_set:
-        current_node = min(open_set, key=lambda n: n.g_cost)
-        if current_node == goal:
-            return reconstruct_path(current_node)
-        open_set.remove(current_node)
-        closed_set.add(current_node)
-
-        for neighbor in current_node.neighbors:
-            if neighbor in closed_set:
-                continue
-            temp_g_cost = current_node.g_cost + sqrt((neighbor.position[0] - current_node.position[0])**2 + (neighbor.position[1] - current_node.position[1])**2)
-            if temp_g_cost < neighbor.g_cost:
-                neighbor.g_cost = temp_g_cost
-                neighbor.parent = current_node
-                open_set.add(neighbor)
-            yield current_node, open_set, closed_set, []
+def calculate_direction(from_node, to_node):
+    # Returns the angle in radians between the from_node and to_node, relative to the x-axis.
+    return atan2(to_node.position[1] - from_node.position[1], to_node.position[0] - from_node.position[0])
 
 def a_star_search(start, goal):
     open_set = set()
     closed_set = set()
     start.g_cost = 0
     start.f_cost = start.g_cost + heuristic(start, goal)
+    start.direction = None
     open_set.add(start)
 
     while open_set:
@@ -107,12 +90,25 @@ def a_star_search(start, goal):
         for neighbor in current_node.neighbors:
             if neighbor in closed_set:
                 continue
-            temp_g_cost = current_node.g_cost + sqrt((neighbor.position[0] - current_node.position[0]) ** 2 + (neighbor.position[1] - current_node.position[1]) ** 2)
-            if neighbor not in open_set or temp_g_cost < neighbor.g_cost:
+
+            new_direction = calculate_direction(current_node, neighbor)
+            distance = sqrt((neighbor.position[0] - current_node.position[0])**2 + (neighbor.position[1] - current_node.position[1])**2)
+            temp_g_cost = current_node.g_cost + distance
+
+            # Apply turn penalty
+            if current_node.direction is not None:
+                angle_difference = abs(new_direction - current_node.direction)
+                if angle_difference > 0:
+                    temp_g_cost += 4  # Apply turn penalty
+
+            if temp_g_cost < neighbor.g_cost:
                 neighbor.g_cost = temp_g_cost
                 neighbor.f_cost = neighbor.g_cost + heuristic(neighbor, goal)
                 neighbor.parent = current_node
-                open_set.add(neighbor)
+                neighbor.direction = new_direction  # Update direction
+                if neighbor not in open_set:
+                    open_set.add(neighbor)
+
             yield current_node, open_set, closed_set, []
 
 def heuristic(node, goal):
