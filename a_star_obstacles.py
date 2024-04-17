@@ -23,6 +23,7 @@ pygame.init()
 win = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Dijkstra's Pathfinding Animation with Obstacles")
 clock = pygame.time.Clock()
+font = pygame.font.Font(None, 30)  # Create a font object
 
 class Node:
     def __init__(self, position):
@@ -114,7 +115,7 @@ def calculate_direction(from_node, to_node):
     # Returns the angle in radians between the from_node and to_node, relative to the x-axis.
     return atan2(to_node.position[1] - from_node.position[1], to_node.position[0] - from_node.position[0])
 
-def draw_nodes_and_edges(nodes, final_path, open_set, closed_set, start, goal):
+def draw_nodes_and_edges(nodes, final_path, open_set, closed_set, start, goal, iteration_count, path_length):
     win.fill(BLACK)
     for ox, oy, ow, oh in obstacles:
         pygame.draw.rect(win, OBSTACLE_COLOR, (ox, oy, ow, oh))
@@ -125,6 +126,18 @@ def draw_nodes_and_edges(nodes, final_path, open_set, closed_set, start, goal):
         if node == goal:
             color = RED
         pygame.draw.circle(win, color, node.position, NODE_RADIUS)
+    
+    # Render iteration count and path length in the top right corner
+    iterations_surf = font.render(f"Iterations: {iteration_count}", True, WHITE)
+    path_length_surf = font.render(f"Path Length: {path_length}", True, WHITE)
+    iterations_pos = (WIDTH - iterations_surf.get_width() - 200, 5)  # Top right, adjust margin
+    path_length_pos = (WIDTH - path_length_surf.get_width() - 30, 5)  # Below the iterations count
+    
+    win.blit(iterations_surf, iterations_pos)
+    win.blit(path_length_surf, path_length_pos)
+
+# All other parts of the code remain the same
+
 
 # Rest of your functions and main loop remain unchanged
 
@@ -137,19 +150,23 @@ generator = a_star_search(start_node, goal_node)
 
 running = True
 final_path = []
+running = True
+final_path = []
+iteration_count = 0
+path_length = 0
 
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-
     if not final_path:
         try:
             current_node, open_set, closed_set, _ = next(generator)
+            iteration_count += 1
         except StopIteration as e:
             final_path = e.value
-
-    draw_nodes_and_edges(nodes, final_path, open_set, closed_set, start_node, goal_node)
+            path_length = len(final_path)
+    draw_nodes_and_edges(nodes, final_path, open_set, closed_set, start_node, goal_node, iteration_count, path_length)
     pygame.display.update()
     clock.tick(100)
 
