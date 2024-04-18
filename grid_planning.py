@@ -75,6 +75,9 @@ def create_graph(obstacles):
                 nodes[(x, y)] = Node((x, y))
     for node in nodes.values():
         x, y = node.position
+        four_connected = [
+            (-NODE_DISTANCE, 0), (NODE_DISTANCE, 0), (0, -NODE_DISTANCE), (0, NODE_DISTANCE)
+            ]
         eight_connected = [
             (-NODE_DISTANCE, 0), (NODE_DISTANCE, 0),
             (0, -NODE_DISTANCE), (0, NODE_DISTANCE),
@@ -91,6 +94,29 @@ def calculate_direction(from_node, to_node):
     return atan2(to_node.position[1] - from_node.position[1], to_node.position[0] - from_node.position[0])
 
 # Planner algorithm
+def dijkstra_search(start, goal):
+    open_set = set()
+    closed_set = set()
+    start.g_cost = 0
+    open_set.add(start)
+
+    while open_set:
+        current_node = min(open_set, key=lambda n: n.g_cost)
+        if current_node == goal:
+            return reconstruct_path(current_node)
+        open_set.remove(current_node)
+        closed_set.add(current_node)
+
+        for neighbor in current_node.neighbors:
+            if neighbor in closed_set:
+                continue
+            temp_g_cost = current_node.g_cost + sqrt((neighbor.position[0] - current_node.position[0])**2 + (neighbor.position[1] - current_node.position[1])**2)
+            if temp_g_cost < neighbor.g_cost:
+                neighbor.g_cost = temp_g_cost
+                neighbor.parent = current_node
+                open_set.add(neighbor)
+            yield current_node, open_set, closed_set, []
+
 def a_star_search(start, goal):
     open_set = set()
     closed_set = set()
@@ -131,7 +157,13 @@ def a_star_search(start, goal):
             yield current_node, open_set, closed_set, []
 
 def heuristic(node, goal):
-    return sqrt((node.position[0] - goal.position[0]) ** 2 + (node.position[1] - goal.position[1]) ** 2)
+    #True for euclidean, False for manhattan
+    norm = False
+    if norm:
+        return sqrt((node.position[0] - goal.position[0]) ** 2 + (node.position[1] - goal.position[1]) ** 2)
+
+    else:
+        return abs(node.position[0] - goal.position[0]) + abs(node.position[1] - goal.position[1])
 
 def reconstruct_path(node):
     path = []
