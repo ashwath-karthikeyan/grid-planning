@@ -75,7 +75,13 @@ def create_graph(obstacles):
                 nodes[(x, y)] = Node((x, y))
     for node in nodes.values():
         x, y = node.position
-        for dx, dy in [(-NODE_DISTANCE, 0), (NODE_DISTANCE, 0), (0, -NODE_DISTANCE), (0, NODE_DISTANCE)]:
+        eight_connected = [
+            (-NODE_DISTANCE, 0), (NODE_DISTANCE, 0),
+            (0, -NODE_DISTANCE), (0, NODE_DISTANCE),
+            (-NODE_DISTANCE, -NODE_DISTANCE), (NODE_DISTANCE, NODE_DISTANCE),
+            (NODE_DISTANCE, -NODE_DISTANCE), (-NODE_DISTANCE, NODE_DISTANCE)  # Diagonal connections
+        ]
+        for dx, dy in eight_connected:
             neighbor_position = (x + dx, y + dy)
             if neighbor_position in nodes:
                 node.add_neighbor(nodes[neighbor_position])
@@ -85,9 +91,6 @@ def calculate_direction(from_node, to_node):
     return atan2(to_node.position[1] - from_node.position[1], to_node.position[0] - from_node.position[0])
 
 # Planner algorithm
-def heuristic(node, goal):
-    return sqrt((node.position[0] - goal.position[0]) ** 2 + (node.position[1] - goal.position[1]) ** 2)
-
 def a_star_search(start, goal):
     open_set = set()
     closed_set = set()
@@ -114,7 +117,7 @@ def a_star_search(start, goal):
             # Apply turn penalty
             if current_node.direction is not None:
                 angle_difference = abs(new_direction - current_node.direction)
-                if angle_difference >= pi/4:
+                if angle_difference > 0:
                     temp_g_cost += 4  # Apply turn penalty
 
             if temp_g_cost < neighbor.g_cost:
@@ -127,6 +130,9 @@ def a_star_search(start, goal):
 
             yield current_node, open_set, closed_set, []
 
+def heuristic(node, goal):
+    return sqrt((node.position[0] - goal.position[0]) ** 2 + (node.position[1] - goal.position[1]) ** 2)
+
 def reconstruct_path(node):
     path = []
     while node:
@@ -136,7 +142,7 @@ def reconstruct_path(node):
 
 # Obstacle definitions (top-left corner x, top-left corner y, width, height)
 obstacles = [
-    (400, 200, 200, 200), (800, 600, 200, 100)
+    (400, 200, 200, 400), (800, 600, 200, 100)
 ]
 
 nodes = create_graph(obstacles)
