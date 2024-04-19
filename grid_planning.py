@@ -157,13 +157,18 @@ def a_star_search(start, goal):
             yield current_node, open_set, closed_set, []
 
 def heuristic(node, goal):
-    #True for euclidean, False for manhattan
-    norm = False
-    if norm:
+    #0 for euclidean, 1 for manhattan, 2 for octile
+    norm = 2
+    if norm == 0:
         return sqrt((node.position[0] - goal.position[0]) ** 2 + (node.position[1] - goal.position[1]) ** 2)
 
-    else:
+    elif norm == 1:
         return abs(node.position[0] - goal.position[0]) + abs(node.position[1] - goal.position[1])
+    
+    elif norm == 2:
+        dx = abs(node.position[0] - goal.position[0])
+        dy = abs(node.position[1] - goal.position[1])
+        return max(dx, dy) + (sqrt(2) - 1) * min(dx, dy)
 
 def reconstruct_path(node):
     path = []
